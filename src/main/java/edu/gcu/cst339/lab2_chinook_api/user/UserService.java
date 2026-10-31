@@ -2,6 +2,7 @@ package edu.gcu.cst339.lab2_chinook_api.user;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 class UserService {
 
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
+
+    private static final Set<String> ROLES = Set.of("USER", "ADMIN");
 
     private final UserRepository userRepository;
 
@@ -54,10 +57,28 @@ class UserService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    UserSummaryDto findById(Integer id) {
+        log.debug("Finding user {}", id);
+        return userRepository.findById(id)
+                .map(UserSummaryDto::fromEntity)
+                .orElseThrow(() -> new UserNotFoundException(id));
+    }
+
     @Transactional
     void updateAccount(Integer id, UserUpdateDto dto) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
+        if (!ROLES.contains(dto.getRole())) {
+            throw new UserValidationException("Invalid role");
+        }
+        boolean isLastAdmin = "ADMIN".equals(user.getRole())
+                && user.isEnabled()
+                && userRepository.countByRoleAndEnabled("ADMIN", true) <= 1;
+        boolean losingAdmin = !"ADMIN".equals(dto.getRole()) || !dto.isEnabled();
+        if (isLastAdmin && losingAdmin) {
+            throw new UserValidationException("Cannot remove the only administrator");
+        }
         user.setRole(dto.getRole());
         user.setEnabled(dto.isEnabled());
         user.setPasswordChangeRequired(dto.isPasswordChangeRequired());

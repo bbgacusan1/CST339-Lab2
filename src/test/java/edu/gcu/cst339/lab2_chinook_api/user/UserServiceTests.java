@@ -174,4 +174,54 @@ class UserServiceTests {
 
         verify(userRepository, never()).save(any(User.class));
     }
+
+    private UserUpdateDto update(String role, boolean enabled) {
+        UserUpdateDto dto = new UserUpdateDto();
+        dto.setRole(role);
+        dto.setEnabled(enabled);
+        return dto;
+    }
+
+    @Test
+    void updateAccountRejectsInvalidRole() {
+        when(userRepository.findById(1)).thenReturn(Optional.of(new User("member", "secret", "USER")));
+
+        assertThatThrownBy(() -> userService.updateAccount(1, update("SUPERUSER", true)))
+                .isInstanceOf(UserValidationException.class);
+
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void updateAccountRejectsDisablingLastAdmin() {
+        when(userRepository.findById(1)).thenReturn(Optional.of(new User("boss", "secret", "ADMIN")));
+        when(userRepository.countByRoleAndEnabled("ADMIN", true)).thenReturn(1L);
+
+        assertThatThrownBy(() -> userService.updateAccount(1, update("ADMIN", false)))
+                .isInstanceOf(UserValidationException.class);
+
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void updateAccountRejectsDemotingLastAdmin() {
+        when(userRepository.findById(1)).thenReturn(Optional.of(new User("boss", "secret", "ADMIN")));
+        when(userRepository.countByRoleAndEnabled("ADMIN", true)).thenReturn(1L);
+
+        assertThatThrownBy(() -> userService.updateAccount(1, update("USER", true)))
+                .isInstanceOf(UserValidationException.class);
+
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void updateAccountAllowsDisablingAdminWhenAnotherExists() {
+        User admin = new User("boss", "secret", "ADMIN");
+        when(userRepository.findById(1)).thenReturn(Optional.of(admin));
+        when(userRepository.countByRoleAndEnabled("ADMIN", true)).thenReturn(2L);
+
+        userService.updateAccount(1, update("ADMIN", false));
+
+        assertThat(admin.isEnabled()).isFalse();
+    }
 }
