@@ -12,6 +12,8 @@
         <h1>Login</h1>
 
         <div class="alert alert-success" th:if="${successMessage}" th:text="${successMessage}"></div>
+        <div class="alert alert-danger" th:if="${param.error}">Invalid username or password.</div>
+        <div class="alert alert-info" th:if="${param.logout}">You have been logged out.</div>
 
         <form th:action="@{/login}" th:object="${login}" method="post">
             <div class="alert alert-danger" th:if="${#fields.hasGlobalErrors()}" th:errors="*{global}"></div>
