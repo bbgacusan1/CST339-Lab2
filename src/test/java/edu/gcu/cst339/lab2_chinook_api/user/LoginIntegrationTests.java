@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -12,7 +13,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -137,13 +137,13 @@ class LoginIntegrationTests {
                 .andExpect(redirectedUrl("/login"));
     }
 
-    @Disabled("Re-enable in step 6 once change-password uses Principal and PasswordEncoder")
+    // user(...) logs in a mock user for this request, so the controller's Principal is "login-test-user".
     @Test
     void changePasswordUpdatesUserAndRedirectsToLogin() throws Exception {
         saveUser(true, true);
 
         mockMvc.perform(post("/change-password")
-                .sessionAttr("username", "login-test-user")
+                .with(user("login-test-user"))
                 .param("currentPassword", "secret")
                 .param("newPassword", "newsecret")
                 .param("confirmPassword", "newsecret")
@@ -151,22 +151,27 @@ class LoginIntegrationTests {
                 .andExpect(redirectedUrl("/login"));
 
         User user = userRepository.findByUsername("login-test-user").orElseThrow();
+        assertThat(user.getPassword()).isNotEqualTo("newsecret").startsWith("$2");
         assertThat(passwordEncoder.matches("newsecret", user.getPassword())).isTrue();
+        assertThat(passwordEncoder.matches("secret", user.getPassword())).isFalse();
         assertThat(user.isPasswordChangeRequired()).isFalse();
     }
 
-    @Disabled("Re-enable in step 6 once change-password uses Principal and PasswordEncoder")
     @Test
     void changePasswordRejectsWrongCurrentPassword() throws Exception {
-        saveUser(true, true);
+        User saved = saveUser(true, true);
+        String originalHash = saved.getPassword();
 
         mockMvc.perform(post("/change-password")
-                .sessionAttr("username", "login-test-user")
+                .with(user("login-test-user"))
                 .param("currentPassword", "wrong")
                 .param("newPassword", "newsecret")
                 .param("confirmPassword", "newsecret")
                 .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Current password is incorrect")));
+
+        User user = userRepository.findByUsername("login-test-user").orElseThrow();
+        assertThat(user.getPassword()).isEqualTo(originalHash);
     }
 }

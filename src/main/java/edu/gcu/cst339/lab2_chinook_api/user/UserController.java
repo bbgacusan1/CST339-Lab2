@@ -1,5 +1,7 @@
 package edu.gcu.cst339.lab2_chinook_api.user;
 
+import java.security.Principal;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -8,7 +10,8 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 @Controller
@@ -50,10 +53,7 @@ class UserController {
     }
 
     @GetMapping("/change-password")
-    String showPasswordChangeForm(Model model, HttpSession session) {
-        if (session.getAttribute("username") == null) {
-            return "redirect:/login";
-        }
+    String showPasswordChangeForm(Model model) {
         model.addAttribute("passwordChange", new PasswordChangeDto());
         return "change-password";
     }
@@ -61,12 +61,10 @@ class UserController {
     @PostMapping("/change-password")
     String changePassword(@Valid @ModelAttribute("passwordChange") PasswordChangeDto form,
             BindingResult bindingResult,
-            HttpSession session,
-            RedirectAttributes redirectAttributes) {
-        String username = (String) session.getAttribute("username");
-        if (username == null) {
-            return "redirect:/login";
-        }
+            Principal principal,
+            HttpServletRequest request,
+            RedirectAttributes redirectAttributes) throws ServletException {
+        String username = principal.getName();
         if (bindingResult.hasErrors()) {
             return "change-password";
         }
@@ -76,7 +74,7 @@ class UserController {
             bindingResult.reject("password.invalid", e.getMessage());
             return "change-password";
         }
-        session.removeAttribute("username");
+        request.logout();
         redirectAttributes.addFlashAttribute("successMessage", "Password changed. Please log in.");
         return "redirect:/login";
     }

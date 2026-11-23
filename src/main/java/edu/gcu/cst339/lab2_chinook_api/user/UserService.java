@@ -6,6 +6,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,8 +19,11 @@ class UserService {
 
     private final UserRepository userRepository;
 
-    UserService(UserRepository userRepository) {
+    private final PasswordEncoder passwordEncoder;
+
+    UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
@@ -82,13 +86,13 @@ class UserService {
     void changePassword(String username, PasswordChangeDto dto) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserValidationException("User not found"));
-        if (!user.getPassword().equals(dto.getCurrentPassword())) {
+        if (!passwordEncoder.matches(dto.getCurrentPassword(), user.getPassword())) {
             throw new UserValidationException("Current password is incorrect");
         }
         if (!dto.getNewPassword().equals(dto.getConfirmPassword())) {
             throw new UserValidationException("Passwords do not match");
         }
-        user.setPassword(dto.getNewPassword());
+        user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
         user.setPasswordChangeRequired(false);
         userRepository.save(user);
         log.info("Changed password for user {}", username);
