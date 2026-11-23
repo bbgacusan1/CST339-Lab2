@@ -11,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
 class AdminBootstrapInitializerTests {
@@ -18,17 +19,27 @@ class AdminBootstrapInitializerTests {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
+    private AdminBootstrapInitializer initializer(String initialPassword) {
+        return new AdminBootstrapInitializer(userRepository, passwordEncoder, initialPassword);
+    }
+
+    // The bootstrap admin must be saved with encode(initialPassword), never the plain value,
+    // otherwise BCrypt login could never match it.
     @Test
-    void createsAdminWhenNoneExists() {
+    void createsAdminWithEncodedPasswordWhenNoneExists() {
         when(userRepository.existsByRole("ADMIN")).thenReturn(false);
         when(userRepository.existsByUsername("admin")).thenReturn(false);
+        when(passwordEncoder.encode("temporary")).thenReturn("encoded-temporary");
 
-        new AdminBootstrapInitializer(userRepository, "temporary").run(null);
+        initializer("temporary").run(null);
 
         ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(saved.capture());
         assertThat(saved.getValue().getUsername()).isEqualTo("admin");
-        assertThat(saved.getValue().getPassword()).isEqualTo("temporary");
+        assertThat(saved.getValue().getPassword()).isEqualTo("encoded-temporary").isNotEqualTo("temporary");
         assertThat(saved.getValue().getRole()).isEqualTo("ADMIN");
         assertThat(saved.getValue().isEnabled()).isTrue();
         assertThat(saved.getValue().isPasswordChangeRequired()).isTrue();
@@ -38,8 +49,9 @@ class AdminBootstrapInitializerTests {
     void doesNothingWhenAdminExists() {
         when(userRepository.existsByRole("ADMIN")).thenReturn(true);
 
-        new AdminBootstrapInitializer(userRepository, "temporary").run(null);
+        initializer("temporary").run(null);
 
+        verify(passwordEncoder, never()).encode(any());
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -47,8 +59,9 @@ class AdminBootstrapInitializerTests {
     void skipsWhenPasswordIsBlank() {
         when(userRepository.existsByRole("ADMIN")).thenReturn(false);
 
-        new AdminBootstrapInitializer(userRepository, "").run(null);
+        initializer("").run(null);
 
+        verify(passwordEncoder, never()).encode(any());
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -57,8 +70,9 @@ class AdminBootstrapInitializerTests {
         when(userRepository.existsByRole("ADMIN")).thenReturn(false);
         when(userRepository.existsByUsername("admin")).thenReturn(true);
 
-        new AdminBootstrapInitializer(userRepository, "temporary").run(null);
+        initializer("temporary").run(null);
 
+        verify(passwordEncoder, never()).encode(any());
         verify(userRepository, never()).save(any(User.class));
     }
 }

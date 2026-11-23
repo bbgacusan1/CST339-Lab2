@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 /**
@@ -18,10 +19,13 @@ class AdminBootstrapInitializer implements ApplicationRunner {
 
     private final UserRepository userRepository;
     private final String initialPassword;
+    private final PasswordEncoder passwordEncoder;
 
     AdminBootstrapInitializer(UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
             @Value("${app.admin.initial-password}") String initialPassword) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
         this.initialPassword = initialPassword;
     }
 
@@ -38,7 +42,7 @@ class AdminBootstrapInitializer implements ApplicationRunner {
             log.warn("No administrator exists but the username admin is taken; skipping bootstrap");
             return;
         }
-        User admin = new User("admin", initialPassword, "ADMIN");
+        User admin = new User("admin", passwordEncoder.encode(initialPassword), "ADMIN");
         admin.setPasswordChangeRequired(true);
         userRepository.save(admin);
         log.info("Created bootstrap administrator");
