@@ -1,7 +1,5 @@
 package edu.gcu.cst339.lab2_chinook_api.user;
 
-import java.util.Optional;
-
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -49,25 +47,6 @@ class UserController {
     String showLoginForm(Model model) {
         model.addAttribute("login", new LoginDto());
         return "login";
-    }
-
-    @PostMapping("/login")
-    String login(@Valid @ModelAttribute("login") LoginDto form,
-            BindingResult bindingResult,
-            HttpSession session) {
-        if (bindingResult.hasErrors()) {
-            return "login";
-        }
-        Optional<UserSummaryDto> user = userService.validateLogin(form);
-        if (user.isEmpty()) {
-            bindingResult.reject("login.invalid", "Invalid username or password");
-            return "login";
-        }
-        session.setAttribute("username", user.get().username());
-        if (user.get().passwordChangeRequired()) {
-            return "redirect:/change-password";
-        }
-        return "redirect:/";
     }
 
     @GetMapping("/change-password")

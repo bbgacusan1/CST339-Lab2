@@ -34,13 +34,6 @@ class UserServiceTests {
         return dto;
     }
 
-    private LoginDto login(String username, String password) {
-        LoginDto dto = new LoginDto();
-        dto.setUsername(username);
-        dto.setPassword(password);
-        return dto;
-    }
-
     private PasswordChangeDto passwordChange(String current, String next, String confirm) {
         PasswordChangeDto dto = new PasswordChangeDto();
         dto.setCurrentPassword(current);
@@ -78,41 +71,6 @@ class UserServiceTests {
                 .isInstanceOf(UserValidationException.class);
 
         verify(userRepository, never()).save(any(User.class));
-    }
-
-    @Test
-    void validateLoginReturnsUserForValidCredentials() {
-        when(userRepository.findByUsername("member"))
-                .thenReturn(Optional.of(new User("member", "secret", "USER")));
-
-        Optional<UserSummaryDto> result = userService.validateLogin(login("member", "secret"));
-
-        assertThat(result).isPresent();
-        assertThat(result.get().username()).isEqualTo("member");
-    }
-
-    @Test
-    void validateLoginRejectsWrongPassword() {
-        when(userRepository.findByUsername("member"))
-                .thenReturn(Optional.of(new User("member", "secret", "USER")));
-
-        assertThat(userService.validateLogin(login("member", "wrong"))).isEmpty();
-    }
-
-    @Test
-    void validateLoginRejectsUnknownUser() {
-        when(userRepository.findByUsername("nobody")).thenReturn(Optional.empty());
-
-        assertThat(userService.validateLogin(login("nobody", "secret"))).isEmpty();
-    }
-
-    @Test
-    void validateLoginRejectsDisabledUser() {
-        User user = new User("member", "secret", "USER");
-        user.setEnabled(false);
-        when(userRepository.findByUsername("member")).thenReturn(Optional.of(user));
-
-        assertThat(userService.validateLogin(login("member", "secret"))).isEmpty();
     }
 
     @Test

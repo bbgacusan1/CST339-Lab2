@@ -42,14 +42,6 @@ class UserService {
     }
 
     @Transactional(readOnly = true)
-    Optional<UserSummaryDto> validateLogin(LoginDto dto) {
-        return userRepository.findByUsername(dto.getUsername())
-                .filter(User::isEnabled)
-                .filter(user -> user.getPassword().equals(dto.getPassword()))
-                .map(UserSummaryDto::fromEntity);
-    }
-
-    @Transactional(readOnly = true)
     List<UserSummaryDto> findAll() {
         log.debug("Finding all users");
         return userRepository.findAll().stream()
