@@ -1,0 +1,248 @@
+{
+  "info": {
+    "name": "Lab 5 Secured Chinook API",
+    "description": "CST-339 Lab 5. Shows the REST access rules: anonymous requests get 401, USER is read-only (403 on writes), ADMIN has full CRUD.\n\nBefore running: open the collection's Variables tab and set userPassword (for a USER account such as testuser) and adminPassword (for the admin account). Set baseUrl to the Render URL to test the deployed app. Do not commit real passwords.\n\nRun the folders in order. The ADMIN folder creates an album, saves its id in albumId, then reads, updates and deletes it.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1 - Anonymous (expect 401)",
+      "auth": { "type": "noauth" },
+      "item": [
+        {
+          "name": "Get All Albums - no credentials",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test(\"Status is 401\", function () {",
+            "    pm.response.to.have.status(401);",
+            "});"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/albums", "host": ["{{baseUrl}}"], "path": ["api", "albums"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Album - no credentials",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test(\"Status is 401\", function () {",
+            "    pm.response.to.have.status(401);",
+            "});"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"title\": \"Postman Test Album\", \"artistId\": 1}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/albums", "host": ["{{baseUrl}}"], "path": ["api", "albums"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2 - USER (read only)",
+      "auth": {
+        "type": "basic",
+        "basic": [
+          { "key": "username", "value": "{{userUsername}}", "type": "string" },
+          { "key": "password", "value": "{{userPassword}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "Get All Albums",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test(\"Status is 200\", function () {",
+            "    pm.response.to.have.status(200);",
+            "});"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/albums", "host": ["{{baseUrl}}"], "path": ["api", "albums"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Album By Id",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test(\"Status is 200\", function () {",
+            "    pm.response.to.have.status(200);",
+            "});"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/albums/1", "host": ["{{baseUrl}}"], "path": ["api", "albums", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Album - forbidden",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test(\"Status is 403\", function () {",
+            "    pm.response.to.have.status(403);",
+            "});"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"title\": \"Postman Test Album\", \"artistId\": 1}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/albums", "host": ["{{baseUrl}}"], "path": ["api", "albums"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Album - forbidden",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test(\"Status is 403\", function () {",
+            "    pm.response.to.have.status(403);",
+            "});"
+          ] } }],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"title\": \"Should Not Change\", \"artistId\": 1}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/albums/1", "host": ["{{baseUrl}}"], "path": ["api", "albums", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Album - forbidden",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test(\"Status is 403\", function () {",
+            "    pm.response.to.have.status(403);",
+            "});"
+          ] } }],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/albums/1", "host": ["{{baseUrl}}"], "path": ["api", "albums", "1"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3 - ADMIN (full CRUD)",
+      "auth": {
+        "type": "basic",
+        "basic": [
+          { "key": "username", "value": "{{adminUsername}}", "type": "string" },
+          { "key": "password", "value": "{{adminPassword}}", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "Create Album",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test(\"Status is 201\", function () {",
+            "    pm.response.to.have.status(201);",
+            "});",
+            "// Save the new id so the next requests work on this album.",
+            "pm.collectionVariables.set(\"albumId\", pm.response.json().albumId);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"title\": \"Postman Test Album\", \"artistId\": 1}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/albums", "host": ["{{baseUrl}}"], "path": ["api", "albums"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Created Album",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test(\"Status is 200\", function () {",
+            "    pm.response.to.have.status(200);",
+            "});"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/albums/{{albumId}}", "host": ["{{baseUrl}}"], "path": ["api", "albums", "{{albumId}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Created Album",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test(\"Status is 200\", function () {",
+            "    pm.response.to.have.status(200);",
+            "});"
+          ] } }],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"title\": \"Postman Test Album (updated)\", \"artistId\": 1}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/albums/{{albumId}}", "host": ["{{baseUrl}}"], "path": ["api", "albums", "{{albumId}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Created Album",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test(\"Status is 204\", function () {",
+            "    pm.response.to.have.status(204);",
+            "});"
+          ] } }],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/albums/{{albumId}}", "host": ["{{baseUrl}}"], "path": ["api", "albums", "{{albumId}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Deleted Album - not found",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test(\"Status is 404\", function () {",
+            "    pm.response.to.have.status(404);",
+            "});"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/albums/{{albumId}}", "host": ["{{baseUrl}}"], "path": ["api", "albums", "{{albumId}}"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4 - Wrong password (expect 401)",
+      "auth": {
+        "type": "basic",
+        "basic": [
+          { "key": "username", "value": "{{userUsername}}", "type": "string" },
+          { "key": "password", "value": "definitely-wrong-password", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "Get All Albums - bad password",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test(\"Status is 401\", function () {",
+            "    pm.response.to.have.status(401);",
+            "});"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/albums", "host": ["{{baseUrl}}"], "path": ["api", "albums"] }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "userUsername", "value": "testuser" },
+    { "key": "userPassword", "value": "" },
+    { "key": "adminUsername", "value": "admin" },
+    { "key": "adminPassword", "value": "" },
+    { "key": "albumId", "value": "" }
+  ]
+}
