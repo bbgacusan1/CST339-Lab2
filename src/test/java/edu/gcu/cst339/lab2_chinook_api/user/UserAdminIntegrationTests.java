@@ -3,6 +3,7 @@ package edu.gcu.cst339.lab2_chinook_api.user;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -13,12 +14,16 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+// The admin pages require login (and ADMIN after Branch 6), so every test runs as a mock ADMIN.
+// The form POSTs also need a CSRF token, added with .with(csrf()).
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@WithMockUser(username = "test-admin", roles = "ADMIN")
 class UserAdminIntegrationTests {
 
     private static final String SECRET = "do-not-render-this-value";
@@ -59,7 +64,8 @@ class UserAdminIntegrationTests {
 
         mockMvc.perform(post("/admin/users/" + user.getUserId())
                 .param("role", "ADMIN")
-                .param("passwordChangeRequired", "true"))
+                .param("passwordChangeRequired", "true")
+                .with(csrf()))
                 .andExpect(redirectedUrl("/admin/users"));
 
         User updated = userRepository.findById(user.getUserId()).orElseThrow();
@@ -74,7 +80,8 @@ class UserAdminIntegrationTests {
 
         mockMvc.perform(post("/admin/users/" + user.getUserId())
                 .param("role", "SUPERUSER")
-                .param("enabled", "true"))
+                .param("enabled", "true")
+                .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Invalid role")));
 

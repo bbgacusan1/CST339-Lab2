@@ -16,5 +16,5 @@ COMMENT ON COLUMN users.enabled IS 'Whether the account is enabled.';
 COMMENT ON COLUMN users.password_change_required IS 'Whether the user must change their password at next sign-in.';
 
 INSERT INTO users (username, password, role, enabled, password_change_required)
-VALUES ('admin', 'password', 'ADMIN', TRUE, TRUE)
+VALUES ('admin', '$2a$10$ZEoT.dVbtph0OXtBfHUzP.dTPV4hxLczHaeYBua7C2oeH3t2b5/IS', 'ADMIN', TRUE, TRUE)
 ON CONFLICT (username) DO NOTHING;

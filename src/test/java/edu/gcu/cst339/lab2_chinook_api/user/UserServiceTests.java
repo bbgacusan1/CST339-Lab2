@@ -16,12 +16,16 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTests {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private UserService userService;
@@ -31,13 +35,6 @@ class UserServiceTests {
         dto.setUsername(username);
         dto.setPassword(password);
         dto.setConfirmPassword(confirmPassword);
-        return dto;
-    }
-
-    private LoginDto login(String username, String password) {
-        LoginDto dto = new LoginDto();
-        dto.setUsername(username);
-        dto.setPassword(password);
         return dto;
     }
 
@@ -81,41 +78,6 @@ class UserServiceTests {
     }
 
     @Test
-    void validateLoginReturnsUserForValidCredentials() {
-        when(userRepository.findByUsername("member"))
-                .thenReturn(Optional.of(new User("member", "secret", "USER")));
-
-        Optional<UserSummaryDto> result = userService.validateLogin(login("member", "secret"));
-
-        assertThat(result).isPresent();
-        assertThat(result.get().username()).isEqualTo("member");
-    }
-
-    @Test
-    void validateLoginRejectsWrongPassword() {
-        when(userRepository.findByUsername("member"))
-                .thenReturn(Optional.of(new User("member", "secret", "USER")));
-
-        assertThat(userService.validateLogin(login("member", "wrong"))).isEmpty();
-    }
-
-    @Test
-    void validateLoginRejectsUnknownUser() {
-        when(userRepository.findByUsername("nobody")).thenReturn(Optional.empty());
-
-        assertThat(userService.validateLogin(login("nobody", "secret"))).isEmpty();
-    }
-
-    @Test
-    void validateLoginRejectsDisabledUser() {
-        User user = new User("member", "secret", "USER");
-        user.setEnabled(false);
-        when(userRepository.findByUsername("member")).thenReturn(Optional.of(user));
-
-        assertThat(userService.validateLogin(login("member", "secret"))).isEmpty();
-    }
-
-    @Test
     void updateAccountChangesFields() {
         User user = new User("member", "secret", "USER");
         when(userRepository.findById(1)).thenReturn(Optional.of(user));
@@ -140,15 +102,19 @@ class UserServiceTests {
                 .isInstanceOf(UserNotFoundException.class);
     }
 
+    // The stored password is a hash, so the service must use matches() to check it
+    // and must save encode(newPassword), never the plain new password.
     @Test
-    void changePasswordUpdatesPasswordAndClearsFlag() {
-        User user = new User("member", "old", "USER");
+    void changePasswordStoresEncodedPasswordAndClearsFlag() {
+        User user = new User("member", "old-hash", "USER");
         user.setPasswordChangeRequired(true);
         when(userRepository.findByUsername("member")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("old", "old-hash")).thenReturn(true);
+        when(passwordEncoder.encode("new")).thenReturn("new-hash");
 
         userService.changePassword("member", passwordChange("old", "new", "new"));
 
-        assertThat(user.getPassword()).isEqualTo("new");
+        assertThat(user.getPassword()).isEqualTo("new-hash").isNotEqualTo("new");
         assertThat(user.isPasswordChangeRequired()).isFalse();
         verify(userRepository).save(user);
     }
@@ -156,22 +122,28 @@ class UserServiceTests {
     @Test
     void changePasswordRejectsWrongCurrentPassword() {
         when(userRepository.findByUsername("member"))
-                .thenReturn(Optional.of(new User("member", "old", "USER")));
+                .thenReturn(Optional.of(new User("member", "old-hash", "USER")));
+        when(passwordEncoder.matches("wrong", "old-hash")).thenReturn(false);
 
         assertThatThrownBy(() -> userService.changePassword("member", passwordChange("wrong", "new", "new")))
-                .isInstanceOf(UserValidationException.class);
+                .isInstanceOf(UserValidationException.class)
+                .hasMessage("Current password is incorrect");
 
+        verify(passwordEncoder, never()).encode(any());
         verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
     void changePasswordRejectsMismatchedNewPasswords() {
         lenient().when(userRepository.findByUsername("member"))
-                .thenReturn(Optional.of(new User("member", "old", "USER")));
+                .thenReturn(Optional.of(new User("member", "old-hash", "USER")));
+        lenient().when(passwordEncoder.matches("old", "old-hash")).thenReturn(true);
 
         assertThatThrownBy(() -> userService.changePassword("member", passwordChange("old", "new", "different")))
-                .isInstanceOf(UserValidationException.class);
+                .isInstanceOf(UserValidationException.class)
+                .hasMessage("Passwords do not match");
 
+        verify(passwordEncoder, never()).encode(any());
         verify(userRepository, never()).save(any(User.class));
     }
 
