@@ -144,7 +144,7 @@ Render terminates HTTPS at its proxy. `server.forward-headers-strategy=framework
 | 7 | `bgacusan-rest-rules` | [#29](https://github.com/bbgacusan1/CST339-Lab2/pull/29) REST rules by HTTP method |
 | 8 | `bgacusan-swagger-security` | [#30](https://github.com/bbgacusan1/CST339-Lab2/pull/30) Swagger HTTP Basic security scheme |
 | 9 | `bgacusan-security-tests` | [#31](https://github.com/bbgacusan1/CST339-Lab2/pull/31) Security integration tests |
-| 10 | `bgacusan-render-deploy` | #32 Deploy to Render and update README <!-- TODO: confirm the number and link once the PR is open --> |
+| 10 | `bgacusan-render-deploy` | [#32](https://github.com/bbgacusan1/CST339-Lab2/pull/32) Deploy to Render and update README |
 
 ## AI references
 
