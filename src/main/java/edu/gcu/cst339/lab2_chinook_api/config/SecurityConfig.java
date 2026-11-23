@@ -28,6 +28,13 @@ public class SecurityConfig {
                 .requestMatchers("/error").permitAll()
                 // Admin pages: ADMIN only (a logged-in USER gets 403). Must come before anyRequest().
                 .requestMatchers("/admin/**").hasRole("ADMIN")
+                // REST API: USER can only read; ADMIN has full CRUD.
+                .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/**").hasRole("ADMIN")
+                // Safety net: PATCH or any other method under /api is ADMIN only.
+                .requestMatchers("/api/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
 

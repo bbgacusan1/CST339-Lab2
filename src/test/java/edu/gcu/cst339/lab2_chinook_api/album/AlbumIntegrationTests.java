@@ -19,8 +19,8 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-// /api/** requires authentication. @WithMockUser logs in a mock ADMIN for every test here
-// (ADMIN so these still pass once Branch 7 restricts POST/PUT/DELETE to ADMIN).
+// POST/PUT/DELETE on /api/** are ADMIN only, so every test here runs as a mock ADMIN.
+// The USER and anonymous cases are in AlbumSecurityIntegrationTests.
 // No csrf() needed: SecurityConfig ignores CSRF for /api/**.
 @SpringBootTest
 @AutoConfigureMockMvc
