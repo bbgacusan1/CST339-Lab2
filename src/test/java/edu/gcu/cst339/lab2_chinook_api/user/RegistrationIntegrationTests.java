@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -26,6 +27,9 @@ class RegistrationIntegrationTests {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @Test
     void registrationPageShowsForm() throws Exception {
         mockMvc.perform(get("/register"))
@@ -42,7 +46,10 @@ class RegistrationIntegrationTests {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/login"));
 
-        assertThat(userRepository.findByUsername("reg-test-user")).isPresent();
+        // The stored value must be a BCrypt hash of what was typed, not the plain text.
+        User saved = userRepository.findByUsername("reg-test-user").orElseThrow();
+        assertThat(saved.getPassword()).isNotEqualTo("secret").startsWith("$2");
+        assertThat(passwordEncoder.matches("secret", saved.getPassword())).isTrue();
     }
 
     @Test

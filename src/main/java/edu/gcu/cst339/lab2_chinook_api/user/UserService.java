@@ -34,7 +34,7 @@ class UserService {
         if (userRepository.existsByUsername(dto.getUsername())) {
             throw new UserValidationException("That username is already taken");
         }
-        User saved = userRepository.save(new User(dto.getUsername(), dto.getPassword(), "USER"));
+        User saved = userRepository.save(new User(dto.getUsername(), passwordEncoder.encode(dto.getPassword()), "USER"));
         log.info("Registered user {}", saved.getUsername());
     }
 
