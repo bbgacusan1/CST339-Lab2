@@ -46,8 +46,10 @@ class UserServiceTests {
         return dto;
     }
 
+    // register() must save encode(password), never the plain password the user typed.
     @Test
-    void registerSavesNewUserWithUserRole() {
+    void registerSavesNewUserWithEncodedPasswordAndUserRole() {
+        when(passwordEncoder.encode("secret")).thenReturn("encoded-secret");
         when(userRepository.save(any(User.class))).thenAnswer(call -> call.getArgument(0));
 
         userService.register(registration("newuser", "secret", "secret"));
@@ -55,6 +57,7 @@ class UserServiceTests {
         ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(saved.capture());
         assertThat(saved.getValue().getUsername()).isEqualTo("newuser");
+        assertThat(saved.getValue().getPassword()).isEqualTo("encoded-secret").isNotEqualTo("secret");
         assertThat(saved.getValue().getRole()).isEqualTo("USER");
         assertThat(saved.getValue().isEnabled()).isTrue();
     }
@@ -64,6 +67,7 @@ class UserServiceTests {
         assertThatThrownBy(() -> userService.register(registration("newuser", "secret", "different")))
                 .isInstanceOf(UserValidationException.class);
 
+        verify(passwordEncoder, never()).encode(any());
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -74,6 +78,7 @@ class UserServiceTests {
         assertThatThrownBy(() -> userService.register(registration("taken", "secret", "secret")))
                 .isInstanceOf(UserValidationException.class);
 
+        verify(passwordEncoder, never()).encode(any());
         verify(userRepository, never()).save(any(User.class));
     }
 
