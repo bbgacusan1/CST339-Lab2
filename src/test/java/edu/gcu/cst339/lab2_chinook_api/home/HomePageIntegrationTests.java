@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
@@ -34,7 +35,9 @@ class HomePageIntegrationTests {
                 .andExpect(content().string(containsString("/swagger-ui.html")));
     }
 
+    // The home page is public, but the album API requires a logged-in user.
     @Test
+    @WithMockUser
     void albumApiStillReturnsJson() throws Exception {
         mockMvc.perform(get("/api/albums/1"))
                 .andExpect(status().isOk())

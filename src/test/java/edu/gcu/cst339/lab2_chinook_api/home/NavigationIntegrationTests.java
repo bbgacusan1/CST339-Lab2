@@ -6,6 +6,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -18,8 +19,11 @@ class NavigationIntegrationTests {
     @Autowired
     private MockMvc mockMvc;
 
+    // /admin/users requires login, so run as a mock ADMIN to reach every page.
+    // Branch 6 changes which links each role sees; update these assertions then.
     @ParameterizedTest
     @ValueSource(strings = { "/", "/login", "/register", "/admin/users" })
+    @WithMockUser(roles = "ADMIN")
     void pageShowsResponsiveNavbar(String path) throws Exception {
         mockMvc.perform(get(path))
                 .andExpect(status().isOk())

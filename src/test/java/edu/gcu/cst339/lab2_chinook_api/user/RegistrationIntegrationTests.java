@@ -2,6 +2,7 @@ package edu.gcu.cst339.lab2_chinook_api.user;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,7 +35,7 @@ class RegistrationIntegrationTests {
 
     @Test
     void validRegistrationSavesUserAndRedirectsToLogin() throws Exception {
-        mockMvc.perform(post("/register")
+        mockMvc.perform(post("/register").with(csrf())
                 .param("username", "reg-test-user")
                 .param("password", "secret")
                 .param("confirmPassword", "secret"))
@@ -46,7 +47,7 @@ class RegistrationIntegrationTests {
 
     @Test
     void tamperedRoleIsIgnored() throws Exception {
-        mockMvc.perform(post("/register")
+        mockMvc.perform(post("/register").with(csrf())
                 .param("username", "reg-test-user")
                 .param("password", "secret")
                 .param("confirmPassword", "secret")
@@ -57,7 +58,7 @@ class RegistrationIntegrationTests {
 
     @Test
     void mismatchedPasswordsShowMessage() throws Exception {
-        mockMvc.perform(post("/register")
+        mockMvc.perform(post("/register").with(csrf())
                 .param("username", "reg-test-user")
                 .param("password", "secret")
                 .param("confirmPassword", "different"))
@@ -71,7 +72,7 @@ class RegistrationIntegrationTests {
     void duplicateUsernameShowsMessage() throws Exception {
         userRepository.saveAndFlush(new User("reg-test-user", "secret", "USER"));
 
-        mockMvc.perform(post("/register")
+        mockMvc.perform(post("/register").with(csrf())
                 .param("username", "reg-test-user")
                 .param("password", "secret")
                 .param("confirmPassword", "secret"))
@@ -81,7 +82,7 @@ class RegistrationIntegrationTests {
 
     @Test
     void blankFieldsRedisplayForm() throws Exception {
-        mockMvc.perform(post("/register")
+        mockMvc.perform(post("/register").with(csrf())
                 .param("username", "")
                 .param("password", "")
                 .param("confirmPassword", ""))
